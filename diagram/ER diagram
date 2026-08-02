@@ -1,0 +1,56 @@
++------------------+
+                    |      USERS      |
+                    +------------------+
+                    | user_id (PK)     |
+                    | name             |
+                    | email            |
+                    | password         |
+                    | role             |
+                    +------------------+
+                            |
+                            | 1
+                            |
+                            | M
+                    +------------------+
+                    |   COMPLAINTS     |
+                    +------------------+
+                    | complaint_id(PK) |
+                    | user_id (FK)     |
+                    | location_id (FK) |
+                    | status_id (FK)   |
+                    | title            |
+                    | description      |
+                    | created_date     |
+                    +------------------+
+                       |           |
+                     1 |           | M
+                       |           |
+                       |           |
+             +---------+      +------------------+
+             |                |      IMAGES      |
+             |                +------------------+
+             |                | image_id (PK)    |
+             |                | complaint_id(FK) |
+             |                | image_path       |
+             |                +------------------+
+             |
+             |
+             v
+    +------------------+
+    |    LOCATIONS     |
+    +------------------+
+    | location_id (PK) |
+    | area             |
+    | city             |
+    | pincode          |
+    +------------------+
+
+             ^
+             |
+             |
+    +------------------+
+    | COMPLAINT_STATUS |
+    +------------------+
+    | status_id (PK)   |
+    | status_name      |
+    +------------------+
