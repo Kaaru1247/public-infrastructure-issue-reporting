@@ -24,7 +24,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/login?email=${encodeURIComponent(
+        `https://public-infrastructure-issue-reporting.onrender.com/login?email=${encodeURIComponent(
           verifyEmail
         )}&password=${encodeURIComponent(verifyPassword)}`,
         {
@@ -34,18 +34,34 @@ function App() {
 
       const data = await response.json();
 
-     if (!response.ok) {
-  alert(data.detail || "Invalid email or password");
-  setVerifyError(data.detail || "Invalid email or password");
-  setLoading(false);
-  return;
-}
+      if (!response.ok) {
+        setVerifyError(
+          data.detail || "Invalid email or password"
+        );
+        setLoading(false);
+        return;
+      }
 
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user_id", data.user_id);
-      localStorage.setItem("user_name", data.name);
-      localStorage.setItem("user_role", data.role);
-      localStorage.setItem("user_email", verifyEmail);
+      localStorage.setItem(
+        "access_token",
+        data.access_token
+      );
+      localStorage.setItem(
+        "user_id",
+        data.user_id
+      );
+      localStorage.setItem(
+        "user_name",
+        data.name
+      );
+      localStorage.setItem(
+        "user_role",
+        data.role
+      );
+      localStorage.setItem(
+        "user_email",
+        verifyEmail
+      );
 
       setPage("report");
 
@@ -53,7 +69,7 @@ function App() {
       console.error(error);
 
       setVerifyError(
-        "Cannot connect to backend. Please make sure FastAPI is running."
+        "Cannot connect to backend. Please make sure FastAPI server is running."
       );
     }
 
