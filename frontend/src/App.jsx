@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Login from "./Login";
+import Register from "./Register";
 import ReportIssue from "./ReportIssue";
+import ViewIssues from "./ViewIssues";
 import "./App.css";
 
 function App() {
@@ -26,7 +28,9 @@ function App() {
       const response = await fetch(
         `https://public-infrastructure-issue-reporting.onrender.com/login?email=${encodeURIComponent(
           verifyEmail
-        )}&password=${encodeURIComponent(verifyPassword)}`,
+        )}&password=${encodeURIComponent(
+          verifyPassword
+        )}`,
         {
           method: "POST",
         }
@@ -46,18 +50,22 @@ function App() {
         "access_token",
         data.access_token
       );
+
       localStorage.setItem(
         "user_id",
         data.user_id
       );
+
       localStorage.setItem(
         "user_name",
         data.name
       );
+
       localStorage.setItem(
         "user_role",
         data.role
       );
+
       localStorage.setItem(
         "user_email",
         verifyEmail
@@ -69,24 +77,38 @@ function App() {
       console.error(error);
 
       setVerifyError(
-        "Cannot connect to backend. Please make sure FastAPI server is running."
+        "Cannot connect to backend. Please try again."
       );
     }
 
     setLoading(false);
   };
 
-  // LOGIN PAGE
+  /* LOGIN PAGE */
+
   if (page === "login") {
     return (
       <Login
         onLogin={() => setPage("home")}
         onBack={() => setPage("home")}
+        onCreateAccount={() => setPage("register")}
       />
     );
   }
 
-  // VERIFICATION PAGE
+  /* REGISTER PAGE */
+
+  if (page === "register") {
+    return (
+      <Register
+        onBack={() => setPage("login")}
+        onRegistered={() => setPage("login")}
+      />
+    );
+  }
+
+  /* VERIFY BEFORE REPORT */
+
   if (page === "verify") {
     return (
       <div className="verify-page">
@@ -154,7 +176,8 @@ function App() {
     );
   }
 
-  // REPORT PAGE
+  /* REPORT PAGE */
+
   if (page === "report") {
     return (
       <ReportIssue
@@ -163,7 +186,18 @@ function App() {
     );
   }
 
-  // HOME PAGE
+  /* VIEW ISSUES */
+
+  if (page === "view") {
+    return (
+      <ViewIssues
+        onBack={() => setPage("home")}
+      />
+    );
+  }
+
+  /* HOME PAGE */
+
   return (
     <div className="app">
 
@@ -178,15 +212,21 @@ function App() {
           and easily.
         </p>
 
-        <button onClick={() => setPage("login")}>
+        <button
+          onClick={() => setPage("login")}
+        >
           Login
         </button>
 
-        <button onClick={() => setPage("verify")}>
+        <button
+          onClick={() => setPage("verify")}
+        >
           Report an Issue
         </button>
 
-        <button onClick={() => setPage("view")}>
+        <button
+          onClick={() => setPage("view")}
+        >
           View Issues
         </button>
 

@@ -1,7 +1,6 @@
 .env
-venv/
 __pycache__/
 *.pyc
 uploads/
-frontend/node_modules/
-frontend/dist/
+infrastructure.db
+aiven.txt

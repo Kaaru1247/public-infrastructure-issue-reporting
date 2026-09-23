@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Login.css";
 
-function Login({ onBack }) {
+function Login({ onBack, onCreateAccount }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -34,7 +34,6 @@ function Login({ onBack }) {
         return;
       }
 
-      // Save login information
       localStorage.setItem(
         "access_token",
         data.access_token
@@ -53,6 +52,11 @@ function Login({ onBack }) {
       localStorage.setItem(
         "user_role",
         data.role
+      );
+
+      localStorage.setItem(
+        "user_email",
+        email
       );
 
       alert("Login successful!");
@@ -129,9 +133,14 @@ function Login({ onBack }) {
 
         <p className="create-account">
           Don't have an account?
-          <button type="button">
+
+          <button
+            type="button"
+            onClick={onCreateAccount}
+          >
             Create Account
           </button>
+
         </p>
 
         <button
