@@ -27,7 +27,7 @@ from database import engine, SessionLocal, Base
 # DATABASE
 # =========================================================
 
- Base.metadata.create_all(bind=engine)git add main.py
+Base.metadata.create_all(bind=engine)
 
 
 # =========================================================
