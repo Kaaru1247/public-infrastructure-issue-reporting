@@ -1,35 +1,60 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+    UploadFile,
+    File
+)
+
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 from sqlalchemy.orm import Session
+
 from passlib.context import CryptContext
+
 from jose import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 import os
 import shutil
 
 import models
-from database import engine, SessionLocal
+from database import engine, SessionLocal, Base
 
 
-# --------------------------------------------------
+# =========================================================
 # DATABASE
-# --------------------------------------------------
+# =========================================================
 
-models.Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 
-# --------------------------------------------------
+# =========================================================
 # FASTAPI APP
-# --------------------------------------------------
+# =========================================================
 
 app = FastAPI(
     title="Public Infrastructure Issue Reporting API"
 )
 
 
-# --------------------------------------------------
+# =========================================================
+# UPLOAD FOLDER
+# =========================================================
+
+os.makedirs("uploads", exist_ok=True)
+
+app.mount(
+    "/uploads",
+    StaticFiles(directory="uploads"),
+    name="uploads"
+)
+
+
+# =========================================================
 # CORS
-# --------------------------------------------------
+# =========================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,46 +68,9 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------
-# PASSWORD
-# --------------------------------------------------
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
-
-
-# --------------------------------------------------
-# JWT SETTINGS
-# --------------------------------------------------
-
-SECRET_KEY = "public_infrastructure_secret_key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-
-    to_encode.update({
-        "exp": expire
-    })
-
-    return jwt.encode(
-        to_encode,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
-
-
-# --------------------------------------------------
-# DATABASE SESSION
-# --------------------------------------------------
+# =========================================================
+# DATABASE DEPENDENCY
+# =========================================================
 
 def get_db():
     db = SessionLocal()
@@ -93,33 +81,81 @@ def get_db():
         db.close()
 
 
-# --------------------------------------------------
+# =========================================================
+# PASSWORD HASHING
+# =========================================================
+
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+
+# =========================================================
+# JWT SETTINGS
+# =========================================================
+
+SECRET_KEY = "public_infrastructure_secret_key"
+
+ALGORITHM = "HS256"
+
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+
+def create_access_token(data: dict):
+
+    to_encode = data.copy()
+
+    expire = datetime.now(
+        timezone.utc
+    ) + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    to_encode.update({
+        "exp": expire
+    })
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return encoded_jwt
+
+
+# =========================================================
 # HOME
-# --------------------------------------------------
+# =========================================================
 
 @app.get("/")
 def home():
+
     return {
         "message": "Public Infrastructure Issue Reporting API is running"
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # GET USERS
-# --------------------------------------------------
+# =========================================================
 
 @app.get("/users")
 def get_users(
     db: Session = Depends(get_db)
 ):
-    users = db.query(models.User).all()
+
+    users = db.query(
+        models.User
+    ).all()
 
     return users
 
 
-# --------------------------------------------------
+# =========================================================
 # REGISTER
-# --------------------------------------------------
+# =========================================================
 
 @app.post("/register")
 def register(
@@ -136,6 +172,7 @@ def register(
     ).first()
 
     if existing_user:
+
         raise HTTPException(
             status_code=400,
             detail="Email already registered"
@@ -153,7 +190,9 @@ def register(
     )
 
     db.add(new_user)
+
     db.commit()
+
     db.refresh(new_user)
 
     return {
@@ -165,9 +204,9 @@ def register(
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # VERIFY EMAIL
-# --------------------------------------------------
+# =========================================================
 
 @app.get("/verify-email")
 def verify_email(
@@ -182,9 +221,10 @@ def verify_email(
     ).first()
 
     if not user:
+
         raise HTTPException(
             status_code=404,
-            detail="Invalid email"
+            detail="Email not registered"
         )
 
     return {
@@ -195,9 +235,9 @@ def verify_email(
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # LOGIN
-# --------------------------------------------------
+# =========================================================
 
 @app.post("/login")
 def login(
@@ -213,6 +253,7 @@ def login(
     ).first()
 
     if not user:
+
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password"
@@ -222,6 +263,7 @@ def login(
         password,
         user.password
     ):
+
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password"
@@ -242,9 +284,9 @@ def login(
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # CREATE LOCATION
-# --------------------------------------------------
+# =========================================================
 
 @app.post("/locations")
 def create_location(
@@ -261,11 +303,13 @@ def create_location(
     )
 
     db.add(new_location)
+
     db.commit()
+
     db.refresh(new_location)
 
     return {
-        "message": "Location added successfully",
+        "message": "Location created successfully",
         "location_id": new_location.location_id,
         "latitude": new_location.latitude,
         "longitude": new_location.longitude,
@@ -273,9 +317,9 @@ def create_location(
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # GET LOCATIONS
-# --------------------------------------------------
+# =========================================================
 
 @app.get("/locations")
 def get_locations(
@@ -289,9 +333,9 @@ def get_locations(
     return locations
 
 
-# --------------------------------------------------
+# =========================================================
 # CREATE COMPLAINT
-# --------------------------------------------------
+# =========================================================
 
 @app.post("/complaints")
 def create_complaint(
@@ -299,10 +343,9 @@ def create_complaint(
     location_id: int,
     title: str,
     description: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db) 
 ):
 
-    # Check user
     user = db.query(
         models.User
     ).filter(
@@ -310,12 +353,12 @@ def create_complaint(
     ).first()
 
     if not user:
+
         raise HTTPException(
             status_code=404,
             detail="User not found"
         )
 
-    # Check location
     location = db.query(
         models.Location
     ).filter(
@@ -323,19 +366,18 @@ def create_complaint(
     ).first()
 
     if not location:
+
         raise HTTPException(
             status_code=404,
             detail="Location not found"
         )
 
-    # Find Reported status
     status = db.query(
         models.Status
     ).filter(
         models.Status.status_name == "Reported"
     ).first()
 
-    # Create status if not exists
     if not status:
 
         status = models.Status(
@@ -343,7 +385,9 @@ def create_complaint(
         )
 
         db.add(status)
+
         db.commit()
+
         db.refresh(status)
 
     new_complaint = models.Complaint(
@@ -355,7 +399,9 @@ def create_complaint(
     )
 
     db.add(new_complaint)
+
     db.commit()
+
     db.refresh(new_complaint)
 
     return {
@@ -369,9 +415,9 @@ def create_complaint(
     }
 
 
-# --------------------------------------------------
-# GET COMPLAINTS
-# --------------------------------------------------
+# =========================================================
+# GET ALL COMPLAINTS
+# =========================================================
 
 @app.get("/complaints")
 def get_complaints(
@@ -399,19 +445,24 @@ def get_complaints(
             "location_id": complaint.location_id,
             "title": complaint.title,
             "description": complaint.description,
-            "status": status.status_name
-            if status else "Unknown",
+            "status": (
+                status.status_name
+                if status
+                else "Unknown"
+            ),
             "created_date": complaint.created_date
         })
 
     return result
 
 
-# --------------------------------------------------
+# =========================================================
 # UPDATE COMPLAINT STATUS
-# --------------------------------------------------
+# =========================================================
 
-@app.put("/complaints/{complaint_id}/status")
+@app.put(
+    "/complaints/{complaint_id}/status"
+)
 def update_complaint_status(
     complaint_id: int,
     status_name: str,
@@ -426,6 +477,7 @@ def update_complaint_status(
     ).first()
 
     if not complaint:
+
         raise HTTPException(
             status_code=404,
             detail="Complaint not found"
@@ -445,26 +497,31 @@ def update_complaint_status(
         )
 
         db.add(status)
+
         db.commit()
+
         db.refresh(status)
 
     complaint.status_id = status.status_id
 
     db.commit()
+
     db.refresh(complaint)
 
     return {
-        "message": "Complaint status updated",
+        "message": "Complaint status updated successfully",
         "complaint_id": complaint.complaint_id,
         "status": status.status_name
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # UPLOAD IMAGE
-# --------------------------------------------------
+# =========================================================
 
-@app.post("/complaints/{complaint_id}/images")
+@app.post(
+    "/complaints/{complaint_id}/images"
+)
 def upload_image(
     complaint_id: int,
     file: UploadFile = File(...),
@@ -479,6 +536,7 @@ def upload_image(
     ).first()
 
     if not complaint:
+
         raise HTTPException(
             status_code=404,
             detail="Complaint not found"
@@ -496,7 +554,11 @@ def upload_image(
         file.filename
     )
 
-    with open(file_path, "wb") as buffer:
+    with open(
+        file_path,
+        "wb"
+    ) as buffer:
+
         shutil.copyfileobj(
             file.file,
             buffer
@@ -508,7 +570,9 @@ def upload_image(
     )
 
     db.add(new_image)
+
     db.commit()
+
     db.refresh(new_image)
 
     return {
@@ -519,11 +583,13 @@ def upload_image(
     }
 
 
-# --------------------------------------------------
+# =========================================================
 # GET COMPLAINT IMAGES
-# --------------------------------------------------
+# =========================================================
 
-@app.get("/complaints/{complaint_id}/images")
+@app.get(
+    "/complaints/{complaint_id}/images"
+)
 def get_complaint_images(
     complaint_id: int,
     db: Session = Depends(get_db)
@@ -536,4 +602,11 @@ def get_complaint_images(
         complaint_id
     ).all()
 
-    return images
+    return [
+        {
+            "image_id": image.image_id,
+            "complaint_id": image.complaint_id,
+            "image_path": image.image_path
+        }
+        for image in images
+    ]
